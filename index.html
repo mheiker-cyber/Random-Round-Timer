@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Random Round Timer - BJJ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="container">
+    <header>
+      <h1>Random Round Timer</h1>
+      <p class="subtitle">Brazilian Jiu Jitsu Training</p>
+    </header>
+
+    <section id="setup" class="card">
+      <h2>Session Setup</h2>
+      
+      <div class="grid">
+        <div class="field">
+          <label>Round Time (seconds)</label>
+          <div class="range-row">
+            <input type="number" id="roundMin" min="10" step="5" value="180">
+            <span>to</span>
+            <input type="number" id="roundMax" min="10" step="5" value="300">
+          </div>
+          <small>Min and max duration per round (random)</small>
+        </div>
+
+        <div class="field">
+          <label>Break Time (seconds)</label>
+          <div class="range-row">
+            <input type="number" id="breakMin" min="10" step="5" value="60">
+            <span>to</span>
+            <input type="number" id="breakMax" min="10" step="5" value="90">
+          </div>
+          <small>Min and max duration between rounds (random)</small>
+        </div>
+
+        <div class="field">
+          <label>End Condition</label>
+          <div class="radio-group">
+            <label><input type="radio" name="endCondition" value="rounds" checked> Number of Rounds</label>
+            <label><input type="radio" name="endCondition" value="time"> Total Session Time (minutes)</label>
+          </div>
+          <div id="roundsInput">
+            <input type="number" id="roundCount" min="1" value="5">
+            <small>Complete this many rounds</small>
+          </div>
+          <div id="timeInput" class="hidden">
+            <input type="number" id="sessionMinutes" min="5" step="5" value="30">
+            <small>Run until this much total time elapsed (approx)</small>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Pre-start Countdown (seconds)</label>
+          <input type="number" id="countdown" min="0" max="30" value="5">
+          <small>Countdown before each round and before each break (default 5s)</small>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="startBtn" class="primary">Start Session</button>
+      </div>
+    </section>
+
+    <section id="timer" class="card hidden">
+      <div class="status-bar">
+        <div>
+          <span class="label">Status:</span>
+          <span id="status" class="status-value">Ready</span>
+        </div>
+        <div>
+          <span class="label">Round:</span>
+          <span id="roundInfo">0 / 0</span>
+        </div>
+        <div>
+          <span class="label">Session Elapsed:</span>
+          <span id="sessionElapsed">00:00</span>
+        </div>
+      </div>
+
+      <div class="timer-display">
+        <div id="phaseLabel" class="phase-label">GET READY</div>
+        <div id="timeDisplay" class="time-big">00:00</div>
+        <div id="nextInfo" class="next-info"></div>
+      </div>
+
+      <div class="actions">
+        <button id="stopBtn" class="danger">Stop / Cancel Session</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
