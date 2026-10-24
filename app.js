@@ -52,16 +52,17 @@ function randomInRange(min, max) {
 }
 
 function formatTime(seconds) {
+  if (seconds < 0) seconds = 0;
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
 // UI elements
-const setupSection = document.getElementById('setup');
-const timerSection = document.getElementById('timer');
-const startBtn = document.getElementById('startBtn');
-const stopBtn = document.getElementById('stopBtn');
+const optionsBtn = document.getElementById('optionsBtn');
+const optionsModal = document.getElementById('optionsModal');
+const modalBackdrop = document.getElementById('modalBackdrop');
+const closeModalBtn = document.getElementById('closeModalBtn');
 
 const roundMinInput = document.getElementById('roundMin');
 const roundMaxInput = document.getElementById('roundMax');
@@ -74,6 +75,9 @@ const roundCountInput = document.getElementById('roundCount');
 const sessionMinutesInput = document.getElementById('sessionMinutes');
 const countdownInput = document.getElementById('countdown');
 
+const roundRangeDisplay = document.getElementById('roundRangeDisplay');
+const breakRangeDisplay = document.getElementById('breakRangeDisplay');
+
 const statusEl = document.getElementById('status');
 const roundInfoEl = document.getElementById('roundInfo');
 const sessionElapsedEl = document.getElementById('sessionElapsed');
@@ -81,23 +85,39 @@ const phaseLabelEl = document.getElementById('phaseLabel');
 const timeDisplayEl = document.getElementById('timeDisplay');
 const nextInfoEl = document.getElementById('nextInfo');
 
+const startPauseBtn = document.getElementById('startPauseBtn');
+const stopBtn = document.getElementById('stopBtn');
+
 // State
 let state = {
   running: false,
+  paused: false,
   currentRound: 0,
   totalRounds: 0,
   endCondition: 'rounds',
   targetSessionMinutes: 0,
   sessionStartTime: null,
   sessionElapsedSeconds: 0,
-  phase: 'idle', // countdown, round, break, done
+  phase: 'idle', // idle, countdown, round, break, done
   timeRemaining: 0,
   roundDuration: 0,
   breakDuration: 0,
   countdownSeconds: 5,
   intervalId: null,
-  sessionIntervalId: null
+  sessionIntervalId: null,
+  nextAction: null // function to call when resuming
 };
+
+function updateRangeDisplays() {
+  roundRangeDisplay.textContent = `${roundMinInput.value}s - ${roundMaxInput.value}s`;
+  breakRangeDisplay.textContent = `${breakMinInput.value}s - ${breakMaxInput.value}s`;
+}
+
+[roundMinInput, roundMaxInput, breakMinInput, breakMaxInput].forEach(input => {
+  input.addEventListener('change', updateRangeDisplays);
+});
+
+updateRangeDisplays();
 
 endConditionRadios.forEach(radio => {
   radio.addEventListener('change', (e) => {
@@ -111,12 +131,36 @@ endConditionRadios.forEach(radio => {
   });
 });
 
-startBtn.addEventListener('click', startSession);
+// Modal
+optionsBtn.addEventListener('click', () => {
+  optionsModal.showModal();
+});
+
+closeModalBtn.addEventListener('click', () => {
+  optionsModal.close();
+});
+
+modalBackdrop.addEventListener('click', () => {
+  optionsModal.close();
+});
+
+// Start/Pause button
+startPauseBtn.addEventListener('click', handleStartPause);
 stopBtn.addEventListener('click', stopSession);
 
-function startSession() {
-  initAudio(); // Ensure audio context is ready (user gesture)
+function handleStartPause() {
+  initAudio();
   
+  if (!state.running && state.phase === 'idle') {
+    startSession();
+  } else if (state.running && !state.paused) {
+    pauseSession();
+  } else if (state.paused) {
+    resumeSession();
+  }
+}
+
+function startSession() {
   const roundMin = parseInt(roundMinInput.value);
   const roundMax = parseInt(roundMaxInput.value);
   const breakMin = parseInt(breakMinInput.value);
@@ -142,12 +186,13 @@ function startSession() {
   state.countdownSeconds = parseInt(countdownInput.value) || 5;
   
   state.running = true;
+  state.paused = false;
   state.currentRound = 0;
   state.sessionStartTime = Date.now();
   state.sessionElapsedSeconds = 0;
+  state.phase = 'idle';
   
-  setupSection.classList.add('hidden');
-  timerSection.classList.remove('hidden');
+  updateStartPauseButton();
   
   // Start session elapsed timer
   if (state.sessionIntervalId) clearInterval(state.sessionIntervalId);
@@ -157,12 +202,122 @@ function startSession() {
   nextRound();
 }
 
+function pauseSession() {
+  state.paused = true;
+  if (state.intervalId) {
+    clearInterval(state.intervalId);
+    state.intervalId = null;
+  }
+  if (state.sessionIntervalId) {
+    clearInterval(state.sessionIntervalId);
+    state.sessionIntervalId = null;
+  }
+  statusEl.textContent = 'Paused';
+  statusEl.className = 'meta-value';
+  updateStartPauseButton();
+}
+
+function resumeSession() {
+  state.paused = false;
+  statusEl.textContent = state.phase === 'round' ? 'In Progress' : state.phase === 'break' ? 'Rest' : 'Get Ready';
+  statusEl.className = 'meta-value';
+  
+  // Resume session elapsed timer
+  if (state.sessionIntervalId) clearInterval(state.sessionIntervalId);
+  state.sessionStartTime = Date.now() - (state.sessionElapsedSeconds * 1000);
+  state.sessionIntervalId = setInterval(updateSessionElapsed, 1000);
+  
+  if (state.phase === 'countdown' && state.nextAction) {
+    // Resume countdown
+    resumeCountdown();
+  } else if (state.phase === 'round') {
+    resumeTimer();
+  } else if (state.phase === 'break') {
+    resumeTimer();
+  }
+  
+  updateStartPauseButton();
+}
+
+function resumeCountdown() {
+  let count = state.timeRemaining;
+  if (state.intervalId) clearInterval(state.intervalId);
+  
+  state.intervalId = setInterval(() => {
+    count--;
+    state.timeRemaining = count;
+    timeDisplayEl.textContent = formatTime(count);
+    
+    if (count > 0) {
+      playBeep();
+    } else if (count === 0) {
+      playBeep();
+    }
+    
+    if (count <= 0) {
+      clearInterval(state.intervalId);
+      state.nextAction();
+      state.nextAction = null;
+    }
+  }, 1000);
+}
+
+function resumeTimer() {
+  if (state.intervalId) clearInterval(state.intervalId);
+  state.intervalId = setInterval(() => {
+    state.timeRemaining--;
+    timeDisplayEl.textContent = formatTime(state.timeRemaining);
+    
+    if (state.timeRemaining <= 0) {
+      clearInterval(state.intervalId);
+      if (state.phase === 'round') {
+        playGong();
+        nextBreak();
+      } else if (state.phase === 'break') {
+        playGong();
+        nextRound();
+      }
+    }
+  }, 1000);
+}
+
+function updateStartPauseButton() {
+  if (!state.running && state.phase === 'idle') {
+    startPauseBtn.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <polygon points="5,3 19,12 5,21"></polygon>
+      </svg>
+      Start
+    `;
+    startPauseBtn.className = 'btn btn-start';
+    startPauseBtn.disabled = false;
+  } else if (state.running && !state.paused) {
+    startPauseBtn.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <rect x="6" y="4" width="4" height="16"></rect>
+        <rect x="14" y="4" width="4" height="16"></rect>
+      </svg>
+      Pause
+    `;
+    startPauseBtn.className = 'btn btn-pause';
+    startPauseBtn.disabled = false;
+  } else if (state.paused) {
+    startPauseBtn.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <polygon points="5,3 19,12 5,21"></polygon>
+      </svg>
+      Resume
+    `;
+    startPauseBtn.className = 'btn btn-start';
+    startPauseBtn.disabled = false;
+  }
+}
+
 function updateSessionElapsed() {
-  if (!state.running) return;
+  if (!state.running || state.paused) return;
   state.sessionElapsedSeconds = Math.floor((Date.now() - state.sessionStartTime) / 1000);
   sessionElapsedEl.textContent = formatTime(state.sessionElapsedSeconds);
   
-  // Check if time-based end condition reached
   if (state.endCondition === 'time') {
     if (state.sessionElapsedSeconds >= state.targetSessionMinutes * 60) {
       endSession('Time limit reached');
@@ -171,6 +326,7 @@ function updateSessionElapsed() {
 }
 
 function nextRound() {
+  if (!state.running) return;
   state.currentRound++;
   
   if (state.endCondition === 'rounds' && state.currentRound > state.totalRounds) {
@@ -178,13 +334,11 @@ function nextRound() {
     return;
   }
   
-  // Generate random round duration
   state.roundDuration = randomInRange(
     parseInt(roundMinInput.value),
     parseInt(roundMaxInput.value)
   );
   
-  // Start countdown before round
   startCountdown('ROUND', state.roundDuration, () => {
     startRound();
   }, `Next: Round ${state.currentRound}`);
@@ -192,36 +346,38 @@ function nextRound() {
 
 function startRound() {
   state.phase = 'round';
-  statusEl.textContent = 'IN PROGRESS';
+  statusEl.textContent = 'In Progress';
+  statusEl.className = 'meta-value status-running';
   roundInfoEl.textContent = `${state.currentRound} / ${state.endCondition === 'rounds' ? state.totalRounds : '∞'}`;
   phaseLabelEl.textContent = `ROUND ${state.currentRound}`;
   
-  playGong(); // Gong to start round
+  playGong();
   
   state.timeRemaining = state.roundDuration;
   timeDisplayEl.textContent = formatTime(state.timeRemaining);
   
   if (state.intervalId) clearInterval(state.intervalId);
   state.intervalId = setInterval(() => {
+    if (state.paused) return;
     state.timeRemaining--;
     timeDisplayEl.textContent = formatTime(state.timeRemaining);
     
     if (state.timeRemaining <= 0) {
       clearInterval(state.intervalId);
-      playGong(); // Gong to end round
+      playGong();
       nextBreak();
     }
   }, 1000);
 }
 
 function nextBreak() {
-  // Generate random break duration
+  if (!state.running) return;
+  
   state.breakDuration = randomInRange(
     parseInt(breakMinInput.value),
     parseInt(breakMaxInput.value)
   );
   
-  // Check if we should do a break or end
   if (state.endCondition === 'rounds' && state.currentRound >= state.totalRounds) {
     endSession('Session complete');
     return;
@@ -235,7 +391,6 @@ function nextBreak() {
     }
   }
   
-  // Start countdown before break
   startCountdown('BREAK', state.breakDuration, () => {
     startBreak();
   }, `After break: Round ${state.currentRound + 1}`);
@@ -243,22 +398,24 @@ function nextBreak() {
 
 function startBreak() {
   state.phase = 'break';
-  statusEl.textContent = 'REST';
+  statusEl.textContent = 'Rest';
+  statusEl.className = 'meta-value status-rest';
   phaseLabelEl.textContent = 'BREAK';
   
-  playGong(); // Gong to start break
+  playGong();
   
   state.timeRemaining = state.breakDuration;
   timeDisplayEl.textContent = formatTime(state.timeRemaining);
   
   if (state.intervalId) clearInterval(state.intervalId);
   state.intervalId = setInterval(() => {
+    if (state.paused) return;
     state.timeRemaining--;
     timeDisplayEl.textContent = formatTime(state.timeRemaining);
     
     if (state.timeRemaining <= 0) {
       clearInterval(state.intervalId);
-      playGong(); // Gong to end break
+      playGong();
       nextRound();
     }
   }, 1000);
@@ -266,7 +423,8 @@ function startBreak() {
 
 function startCountdown(phaseName, nextDuration, callback, nextInfoText) {
   state.phase = 'countdown';
-  statusEl.textContent = 'GET READY';
+  statusEl.textContent = 'Get Ready';
+  statusEl.className = 'meta-value status-ready';
   phaseLabelEl.textContent = `NEXT: ${phaseName}`;
   nextInfoEl.textContent = nextInfoText || '';
   
@@ -275,13 +433,14 @@ function startCountdown(phaseName, nextDuration, callback, nextInfoText) {
   timeDisplayEl.textContent = formatTime(count);
   
   if (state.intervalId) clearInterval(state.intervalId);
+  state.nextAction = callback;
   
-  // Play beep for each second of countdown
   if (count > 0) {
     playBeep();
   }
   
   state.intervalId = setInterval(() => {
+    if (state.paused) return;
     count--;
     state.timeRemaining = count;
     timeDisplayEl.textContent = formatTime(count);
@@ -289,12 +448,13 @@ function startCountdown(phaseName, nextDuration, callback, nextInfoText) {
     if (count > 0) {
       playBeep();
     } else if (count === 0) {
-      playBeep(); // Last beep
+      playBeep();
     }
     
     if (count <= 0) {
       clearInterval(state.intervalId);
-      callback();
+      state.nextAction();
+      state.nextAction = null;
     }
   }, 1000);
 }
@@ -302,12 +462,15 @@ function startCountdown(phaseName, nextDuration, callback, nextInfoText) {
 function stopSession() {
   if (!state.running) return;
   if (confirm('Stop and cancel the current training session?')) {
-    endSession('Session cancelled by user');
+    endSession('Session cancelled');
   }
 }
 
 function endSession(reason) {
   state.running = false;
+  state.paused = false;
+  state.phase = 'done';
+  
   if (state.intervalId) {
     clearInterval(state.intervalId);
     state.intervalId = null;
@@ -317,12 +480,14 @@ function endSession(reason) {
     state.sessionIntervalId = null;
   }
   
-  statusEl.textContent = 'COMPLETE';
+  statusEl.textContent = 'Complete';
+  statusEl.className = 'meta-value status-complete';
   phaseLabelEl.textContent = reason.toUpperCase();
   timeDisplayEl.textContent = '00:00';
   nextInfoEl.textContent = '';
   
-  // Show alert
+  updateStartPauseButton();
+  
   setTimeout(() => {
     alert(reason);
   }, 100);

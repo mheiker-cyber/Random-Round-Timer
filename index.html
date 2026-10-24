@@ -4,94 +4,160 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Random Round Timer - BJJ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="container">
-    <header>
-      <h1>Random Round Timer</h1>
-      <p class="subtitle">Brazilian Jiu Jitsu Training</p>
-    </header>
+  <header class="app-header">
+    <div class="header-content">
+      <div class="brand">
+        <h1>Random Round Timer</h1>
+        <p class="brand-subtitle">Brazilian Jiu Jitsu</p>
+      </div>
+      <button id="optionsBtn" class="options-btn" aria-label="Open options">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"></path>
+        </svg>
+        Options
+      </button>
+    </div>
+  </header>
 
-    <section id="setup" class="card">
-      <h2>Session Setup</h2>
-      
-      <div class="grid">
-        <div class="field">
-          <label>Round Time (seconds)</label>
-          <div class="range-row">
-            <input type="number" id="roundMin" min="10" step="5" value="180">
-            <span>to</span>
-            <input type="number" id="roundMax" min="10" step="5" value="300">
-          </div>
-          <small>Min and max duration per round (random)</small>
+  <main class="main">
+    <section id="mainView" class="timer-focus">
+      <div class="session-meta">
+        <div class="meta-item">
+          <span class="meta-label">Round</span>
+          <span id="roundInfo" class="meta-value">- / -</span>
         </div>
-
-        <div class="field">
-          <label>Break Time (seconds)</label>
-          <div class="range-row">
-            <input type="number" id="breakMin" min="10" step="5" value="60">
-            <span>to</span>
-            <input type="number" id="breakMax" min="10" step="5" value="90">
-          </div>
-          <small>Min and max duration between rounds (random)</small>
+        <div class="meta-item">
+          <span class="meta-label">Session</span>
+          <span id="sessionElapsed" class="meta-value">00:00</span>
         </div>
-
-        <div class="field">
-          <label>End Condition</label>
-          <div class="radio-group">
-            <label><input type="radio" name="endCondition" value="rounds" checked> Number of Rounds</label>
-            <label><input type="radio" name="endCondition" value="time"> Total Session Time (minutes)</label>
-          </div>
-          <div id="roundsInput">
-            <input type="number" id="roundCount" min="1" value="5">
-            <small>Complete this many rounds</small>
-          </div>
-          <div id="timeInput" class="hidden">
-            <input type="number" id="sessionMinutes" min="5" step="5" value="30">
-            <small>Run until this much total time elapsed (approx)</small>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Pre-start Countdown (seconds)</label>
-          <input type="number" id="countdown" min="0" max="30" value="5">
-          <small>Countdown before each round and before each break (default 5s)</small>
+        <div class="meta-item">
+          <span class="meta-label">Status</span>
+          <span id="status" class="meta-value status-idle">Ready</span>
         </div>
       </div>
 
-      <div class="actions">
-        <button id="startBtn" class="primary">Start Session</button>
-      </div>
-    </section>
-
-    <section id="timer" class="card hidden">
-      <div class="status-bar">
-        <div>
-          <span class="label">Status:</span>
-          <span id="status" class="status-value">Ready</span>
-        </div>
-        <div>
-          <span class="label">Round:</span>
-          <span id="roundInfo">0 / 0</span>
-        </div>
-        <div>
-          <span class="label">Session Elapsed:</span>
-          <span id="sessionElapsed">00:00</span>
-        </div>
-      </div>
-
-      <div class="timer-display">
+      <div class="timer-hero">
         <div id="phaseLabel" class="phase-label">GET READY</div>
-        <div id="timeDisplay" class="time-big">00:00</div>
+        <div class="time-container">
+          <div id="timeDisplay" class="time-display">00:00</div>
+          <div class="time-context">
+            <div class="context-row">
+              <span class="context-label">Round Range</span>
+              <span id="roundRangeDisplay" class="context-value">-</span>
+            </div>
+            <div class="context-row">
+              <span class="context-label">Break Range</span>
+              <span id="breakRangeDisplay" class="context-value">-</span>
+            </div>
+          </div>
+        </div>
         <div id="nextInfo" class="next-info"></div>
       </div>
 
-      <div class="actions">
-        <button id="stopBtn" class="danger">Stop / Cancel Session</button>
+      <div class="controls">
+        <button id="startPauseBtn" class="btn btn-start">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5,3 19,12 5,21"></polygon>
+          </svg>
+          Start
+        </button>
+        <button id="stopBtn" class="btn btn-stop">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="6" width="12" height="12"></rect>
+          </svg>
+          Stop
+        </button>
       </div>
     </section>
   </main>
+
+  <dialog id="optionsModal" class="options-modal">
+    <div class="modal-backdrop" id="modalBackdrop"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Session Options</h2>
+        <button id="closeModalBtn" class="close-btn" aria-label="Close options">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <section class="option-section">
+          <h3>Round Timing</h3>
+          <div class="range-inputs">
+            <div class="input-group">
+              <label for="roundMin">Min (sec)</label>
+              <input type="number" id="roundMin" min="10" step="5" value="180">
+            </div>
+            <div class="range-separator">to</div>
+            <div class="input-group">
+              <label for="roundMax">Max (sec)</label>
+              <input type="number" id="roundMax" min="10" step="5" value="300">
+            </div>
+          </div>
+        </section>
+
+        <section class="option-section">
+          <h3>Break Timing</h3>
+          <div class="range-inputs">
+            <div class="input-group">
+              <label for="breakMin">Min (sec)</label>
+              <input type="number" id="breakMin" min="10" step="5" value="60">
+            </div>
+            <div class="range-separator">to</div>
+            <div class="input-group">
+              <label for="breakMax">Max (sec)</label>
+              <input type="number" id="breakMax" min="10" step="5" value="90">
+            </div>
+          </div>
+        </section>
+
+        <section class="option-section">
+          <h3>Session End</h3>
+          <div class="radio-group">
+            <label class="radio-option">
+              <input type="radio" name="endCondition" value="rounds" checked>
+              <span>Number of Rounds</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="endCondition" value="time">
+              <span>Total Session Time</span>
+            </label>
+          </div>
+          <div id="roundsInput" class="conditional-input">
+            <div class="input-group">
+              <label for="roundCount">Rounds</label>
+              <input type="number" id="roundCount" min="1" value="5">
+            </div>
+          </div>
+          <div id="timeInput" class="conditional-input hidden">
+            <div class="input-group">
+              <label for="sessionMinutes">Minutes</label>
+              <input type="number" id="sessionMinutes" min="5" step="5" value="30">
+            </div>
+          </div>
+        </section>
+
+        <section class="option-section">
+          <h3>Countdown</h3>
+          <div class="input-group">
+            <label for="countdown">Pre-start Countdown (seconds)</label>
+            <input type="number" id="countdown" min="0" max="30" value="5">
+          </div>
+        </section>
+      </div>
+    </div>
+  </dialog>
 
   <script src="app.js"></script>
 </body>
