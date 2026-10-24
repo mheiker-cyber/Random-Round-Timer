@@ -192,14 +192,31 @@ function startSession() {
   state.sessionElapsedSeconds = 0;
   state.phase = 'idle';
   
+  timeDisplayEl.classList.remove('countdown-active');
+  
   updateStartPauseButton();
   
   // Start session elapsed timer
   if (state.sessionIntervalId) clearInterval(state.sessionIntervalId);
   state.sessionIntervalId = setInterval(updateSessionElapsed, 1000);
   
-  // Start first round
-  nextRound();
+  timeDisplayEl.classList.remove('countdown-active');
+  nextInfoEl.textContent = '';
+  phaseLabelEl.textContent = 'ROUND 1';
+  
+  // Start first round directly
+  state.currentRound = 1;
+  if (state.endCondition === 'rounds' && state.currentRound > state.totalRounds) {
+    endSession('All rounds completed');
+    return;
+  }
+  
+  state.roundDuration = randomInRange(
+    parseInt(roundMinInput.value),
+    parseInt(roundMaxInput.value)
+  );
+  
+  startRound();
 }
 
 function pauseSession() {
@@ -214,25 +231,23 @@ function pauseSession() {
   }
   statusEl.textContent = 'Paused';
   statusEl.className = 'meta-value';
+  timeDisplayEl.classList.remove('countdown-active');
   updateStartPauseButton();
 }
 
 function resumeSession() {
   state.paused = false;
-  statusEl.textContent = state.phase === 'round' ? 'In Progress' : state.phase === 'break' ? 'Rest' : 'Get Ready';
-  statusEl.className = 'meta-value';
+  statusEl.textContent = state.phase === 'round' ? 'In Progress' : state.phase === 'break' ? 'Rest' : 'Ready';
+  if (state.phase === 'round') statusEl.className = 'meta-value status-running';
+  else if (state.phase === 'break') statusEl.className = 'meta-value status-rest';
+  else statusEl.className = 'meta-value';
   
   // Resume session elapsed timer
   if (state.sessionIntervalId) clearInterval(state.sessionIntervalId);
   state.sessionStartTime = Date.now() - (state.sessionElapsedSeconds * 1000);
   state.sessionIntervalId = setInterval(updateSessionElapsed, 1000);
   
-  if (state.phase === 'countdown' && state.nextAction) {
-    // Resume countdown
-    resumeCountdown();
-  } else if (state.phase === 'round') {
-    resumeTimer();
-  } else if (state.phase === 'break') {
+  if (state.phase === 'round' || state.phase === 'break') {
     resumeTimer();
   }
   
@@ -243,19 +258,31 @@ function resumeCountdown() {
   let count = state.timeRemaining;
   if (state.intervalId) clearInterval(state.intervalId);
   
+  if (count > 0 && count <= 5) {
+    timeDisplayEl.classList.add('countdown-active');
+  } else {
+    timeDisplayEl.classList.remove('countdown-active');
+  }
+  
   state.intervalId = setInterval(() => {
     count--;
     state.timeRemaining = count;
     timeDisplayEl.textContent = formatTime(count);
     
-    if (count > 0) {
+    if (count > 0 && count <= 5) {
+      timeDisplayEl.classList.add('countdown-active');
+      playBeep();
+    } else if (count > 5) {
+      timeDisplayEl.classList.remove('countdown-active');
       playBeep();
     } else if (count === 0) {
+      timeDisplayEl.classList.add('countdown-active');
       playBeep();
     }
     
     if (count <= 0) {
       clearInterval(state.intervalId);
+      timeDisplayEl.classList.remove('countdown-active');
       state.nextAction();
       state.nextAction = null;
     }
@@ -264,12 +291,27 @@ function resumeCountdown() {
 
 function resumeTimer() {
   if (state.intervalId) clearInterval(state.intervalId);
+  
+  if (state.timeRemaining > 0 && state.timeRemaining <= 5) {
+    timeDisplayEl.classList.add('countdown-active');
+  } else {
+    timeDisplayEl.classList.remove('countdown-active');
+  }
+  
   state.intervalId = setInterval(() => {
     state.timeRemaining--;
     timeDisplayEl.textContent = formatTime(state.timeRemaining);
     
+    if (state.timeRemaining > 0 && state.timeRemaining <= 5) {
+      timeDisplayEl.classList.add('countdown-active');
+      playBeep();
+    } else if (state.timeRemaining > 5) {
+      timeDisplayEl.classList.remove('countdown-active');
+    }
+    
     if (state.timeRemaining <= 0) {
       clearInterval(state.intervalId);
+      timeDisplayEl.classList.remove('countdown-active');
       if (state.phase === 'round') {
         playGong();
         nextBreak();
@@ -339,9 +381,7 @@ function nextRound() {
     parseInt(roundMaxInput.value)
   );
   
-  startCountdown('ROUND', state.roundDuration, () => {
-    startRound();
-  }, `Next: Round ${state.currentRound}`);
+  startRound();
 }
 
 function startRound() {
@@ -350,6 +390,7 @@ function startRound() {
   statusEl.className = 'meta-value status-running';
   roundInfoEl.textContent = `${state.currentRound} / ${state.endCondition === 'rounds' ? state.totalRounds : '∞'}`;
   phaseLabelEl.textContent = `ROUND ${state.currentRound}`;
+  timeDisplayEl.classList.remove('countdown-active');
   
   playGong();
   
@@ -362,8 +403,17 @@ function startRound() {
     state.timeRemaining--;
     timeDisplayEl.textContent = formatTime(state.timeRemaining);
     
+    // Beep in last 5 seconds
+    if (state.timeRemaining > 0 && state.timeRemaining <= 5) {
+      timeDisplayEl.classList.add('countdown-active');
+      playBeep();
+    } else if (state.timeRemaining > 5) {
+      timeDisplayEl.classList.remove('countdown-active');
+    }
+    
     if (state.timeRemaining <= 0) {
       clearInterval(state.intervalId);
+      timeDisplayEl.classList.remove('countdown-active');
       playGong();
       nextBreak();
     }
@@ -391,9 +441,7 @@ function nextBreak() {
     }
   }
   
-  startCountdown('BREAK', state.breakDuration, () => {
-    startBreak();
-  }, `After break: Round ${state.currentRound + 1}`);
+  startBreak();
 }
 
 function startBreak() {
@@ -401,6 +449,7 @@ function startBreak() {
   statusEl.textContent = 'Rest';
   statusEl.className = 'meta-value status-rest';
   phaseLabelEl.textContent = 'BREAK';
+  timeDisplayEl.classList.remove('countdown-active');
   
   playGong();
   
@@ -413,82 +462,19 @@ function startBreak() {
     state.timeRemaining--;
     timeDisplayEl.textContent = formatTime(state.timeRemaining);
     
+    if (state.timeRemaining > 0 && state.timeRemaining <= 5) {
+      timeDisplayEl.classList.add('countdown-active');
+      playBeep();
+    } else if (state.timeRemaining > 5) {
+      timeDisplayEl.classList.remove('countdown-active');
+    }
+    
     if (state.timeRemaining <= 0) {
       clearInterval(state.intervalId);
+      timeDisplayEl.classList.remove('countdown-active');
       playGong();
       nextRound();
     }
   }, 1000);
 }
 
-function startCountdown(phaseName, nextDuration, callback, nextInfoText) {
-  state.phase = 'countdown';
-  statusEl.textContent = 'Get Ready';
-  statusEl.className = 'meta-value status-ready';
-  phaseLabelEl.textContent = `NEXT: ${phaseName}`;
-  nextInfoEl.textContent = nextInfoText || '';
-  
-  let count = state.countdownSeconds;
-  state.timeRemaining = count;
-  timeDisplayEl.textContent = formatTime(count);
-  
-  if (state.intervalId) clearInterval(state.intervalId);
-  state.nextAction = callback;
-  
-  if (count > 0) {
-    playBeep();
-  }
-  
-  state.intervalId = setInterval(() => {
-    if (state.paused) return;
-    count--;
-    state.timeRemaining = count;
-    timeDisplayEl.textContent = formatTime(count);
-    
-    if (count > 0) {
-      playBeep();
-    } else if (count === 0) {
-      playBeep();
-    }
-    
-    if (count <= 0) {
-      clearInterval(state.intervalId);
-      state.nextAction();
-      state.nextAction = null;
-    }
-  }, 1000);
-}
-
-function stopSession() {
-  if (!state.running) return;
-  if (confirm('Stop and cancel the current training session?')) {
-    endSession('Session cancelled');
-  }
-}
-
-function endSession(reason) {
-  state.running = false;
-  state.paused = false;
-  state.phase = 'done';
-  
-  if (state.intervalId) {
-    clearInterval(state.intervalId);
-    state.intervalId = null;
-  }
-  if (state.sessionIntervalId) {
-    clearInterval(state.sessionIntervalId);
-    state.sessionIntervalId = null;
-  }
-  
-  statusEl.textContent = 'Complete';
-  statusEl.className = 'meta-value status-complete';
-  phaseLabelEl.textContent = reason.toUpperCase();
-  timeDisplayEl.textContent = '00:00';
-  nextInfoEl.textContent = '';
-  
-  updateStartPauseButton();
-  
-  setTimeout(() => {
-    alert(reason);
-  }, 100);
-}

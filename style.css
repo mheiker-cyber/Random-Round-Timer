@@ -79,11 +79,37 @@ body {
   line-height: 1.2;
 }
 
-.brand-subtitle {
-  font-size: 0.875rem;
-  color: var(--text-tertiary);
-  font-weight: 500;
-  margin-top: 0.25rem;
+.time-display {
+  font-size: clamp(5rem, 15vw, 9rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-family: 'Inter', monospace;
+  transition: all 0.3s ease;
+}
+
+.time-display.countdown-active {
+  background: linear-gradient(135deg, var(--warning) 0%, var(--danger) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.02);
+  }
 }
 
 .options-btn {
@@ -549,10 +575,6 @@ body {
   
   .brand h1 {
     font-size: 1.25rem;
-  }
-  
-  .brand-subtitle {
-    font-size: 0.8rem;
   }
   
   .options-btn {
