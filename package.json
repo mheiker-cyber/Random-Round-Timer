@@ -1,0 +1,15 @@
+{
+  "name": "random_round_timer",
+  "version": "1.0.0",
+  "description": "Random Round Timer for BJJ",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.0",
+    "vitest": "^2.0.0"
+  }
+}

@@ -68,7 +68,7 @@ const roundMinInput = document.getElementById('roundMin');
 const roundMaxInput = document.getElementById('roundMax');
 const breakMinInput = document.getElementById('breakMin');
 const breakMaxInput = document.getElementById('breakMax');
-const endConditionRadios = document.getElementsByName('endCondition');
+const endConditionRadios = document.getElementsByName ? document.getElementsByName('endCondition') : [];
 const roundsInput = document.getElementById('roundsInput');
 const timeInput = document.getElementById('timeInput');
 const roundCountInput = document.getElementById('roundCount');
@@ -109,44 +109,72 @@ let state = {
 };
 
 function updateRangeDisplays() {
-  roundRangeDisplay.textContent = `${roundMinInput.value}s - ${roundMaxInput.value}s`;
-  breakRangeDisplay.textContent = `${breakMinInput.value}s - ${breakMaxInput.value}s`;
+  if (roundRangeDisplay && roundMinInput && roundMaxInput) {
+    roundRangeDisplay.textContent = `${roundMinInput.value}s - ${roundMaxInput.value}s`;
+  }
+  if (breakRangeDisplay && breakMinInput && breakMaxInput) {
+    breakRangeDisplay.textContent = `${breakMinInput.value}s - ${breakMaxInput.value}s`;
+  }
 }
 
 [roundMinInput, roundMaxInput, breakMinInput, breakMaxInput].forEach(input => {
-  input.addEventListener('change', updateRangeDisplays);
+  if (input) {
+    input.addEventListener('change', updateRangeDisplays);
+  }
 });
 
 updateRangeDisplays();
 
-endConditionRadios.forEach(radio => {
-  radio.addEventListener('change', (e) => {
-    if (e.target.value === 'rounds') {
-      roundsInput.classList.remove('hidden');
-      timeInput.classList.add('hidden');
-    } else {
-      roundsInput.classList.add('hidden');
-      timeInput.classList.remove('hidden');
+if (endConditionRadios && typeof endConditionRadios.forEach === 'function') {
+  endConditionRadios.forEach(radio => {
+    if (radio) {
+      radio.addEventListener('change', (e) => {
+        if (e.target.value === 'rounds') {
+          if (roundsInput) roundsInput.classList.remove('hidden');
+          if (timeInput) timeInput.classList.add('hidden');
+        } else {
+          if (roundsInput) roundsInput.classList.add('hidden');
+          if (timeInput) timeInput.classList.remove('hidden');
+        }
+      });
     }
   });
-});
+}
 
 // Modal
-optionsBtn.addEventListener('click', () => {
-  optionsModal.showModal();
-});
+if (optionsBtn) {
+  optionsBtn.addEventListener('click', () => {
+    if (optionsModal && typeof optionsModal.showModal === 'function') {
+      optionsModal.showModal();
+    }
+  });
+}
 
-closeModalBtn.addEventListener('click', () => {
-  optionsModal.close();
-});
+if (closeModalBtn) {
+  closeModalBtn.addEventListener('click', () => {
+    if (optionsModal && typeof optionsModal.close === 'function') {
+      optionsModal.close();
+    }
+  });
+}
 
-modalBackdrop.addEventListener('click', () => {
-  optionsModal.close();
-});
+if (modalBackdrop) {
+  modalBackdrop.addEventListener('click', () => {
+    if (optionsModal && typeof optionsModal.close === 'function') {
+      optionsModal.close();
+    }
+  });
+}
 
 // Start/Pause button
-startPauseBtn.addEventListener('click', handleStartPause);
-stopBtn.addEventListener('click', stopSession);
+if (startPauseBtn) {
+  startPauseBtn.addEventListener('click', handleStartPause);
+}
+if (stopBtn) {
+  stopBtn.addEventListener('click', stopSession);
+} else {
+  console.error('stopBtn not found');
+}
 
 function handleStartPause() {
   initAudio();
@@ -229,9 +257,11 @@ function pauseSession() {
     clearInterval(state.sessionIntervalId);
     state.sessionIntervalId = null;
   }
-  statusEl.textContent = 'Paused';
-  statusEl.className = 'meta-value';
-  timeDisplayEl.classList.remove('countdown-active');
+  if (statusEl) {
+    statusEl.textContent = 'Paused';
+    statusEl.className = 'meta-value';
+  }
+  if (timeDisplayEl) timeDisplayEl.classList.remove('countdown-active');
   updateStartPauseButton();
 }
 
@@ -324,6 +354,7 @@ function resumeTimer() {
 }
 
 function updateStartPauseButton() {
+  if (!startPauseBtn) return;
   if (!state.running && state.phase === 'idle') {
     startPauseBtn.innerHTML = `
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -478,3 +509,107 @@ function startBreak() {
   }, 1000);
 }
 
+
+function endSession(reason) {
+  state.running = false;
+  state.paused = false;
+  state.phase = 'idle';
+  
+  if (state.intervalId) {
+    clearInterval(state.intervalId);
+    state.intervalId = null;
+  }
+  if (state.sessionIntervalId) {
+    clearInterval(state.sessionIntervalId);
+    state.sessionIntervalId = null;
+  }
+  
+  timeDisplayEl.classList.remove('countdown-active');
+  statusEl.textContent = reason || 'Session Complete';
+  statusEl.className = 'meta-value';
+  phaseLabelEl.textContent = 'DONE';
+  if (nextInfoEl) nextInfoEl.textContent = '';
+  
+  updateStartPauseButton();
+}
+
+function stopSession() {
+  try {
+    if (state && !state.running && state.phase === 'idle') {
+      // Still reset UI to be safe
+      if (timeDisplayEl) {
+        timeDisplayEl.classList.remove('countdown-active');
+        timeDisplayEl.textContent = '00:00';
+      }
+      if (statusEl) {
+        statusEl.textContent = 'Ready';
+        statusEl.className = 'meta-value status-idle';
+      }
+      if (phaseLabelEl) phaseLabelEl.textContent = 'GET READY';
+      if (roundInfoEl) roundInfoEl.textContent = '- / -';
+      if (sessionElapsedEl) sessionElapsedEl.textContent = '00:00';
+      if (nextInfoEl) nextInfoEl.textContent = '';
+      if (typeof updateStartPauseButton === 'function') updateStartPauseButton();
+      return;
+    }
+    
+    if (state) {
+      state.running = false;
+      state.paused = false;
+      state.phase = 'idle';
+      state.currentRound = 0;
+      state.sessionElapsedSeconds = 0;
+    }
+    
+    if (state && state.intervalId) {
+      clearInterval(state.intervalId);
+      state.intervalId = null;
+    }
+    if (state && state.sessionIntervalId) {
+      clearInterval(state.sessionIntervalId);
+      state.sessionIntervalId = null;
+    }
+    
+    if (timeDisplayEl) {
+      timeDisplayEl.classList.remove('countdown-active');
+      timeDisplayEl.textContent = '00:00';
+    }
+    if (statusEl) {
+      statusEl.textContent = 'Ready';
+      statusEl.className = 'meta-value status-idle';
+    }
+    if (phaseLabelEl) phaseLabelEl.textContent = 'GET READY';
+    if (roundInfoEl) roundInfoEl.textContent = '- / -';
+    if (sessionElapsedEl) sessionElapsedEl.textContent = '00:00';
+    if (nextInfoEl) nextInfoEl.textContent = '';
+    
+    if (typeof updateStartPauseButton === 'function') updateStartPauseButton();
+  } catch (e) {
+    console.error('stopSession error', e);
+  }
+}
+
+// Ensure stop button works even if earlier binding failed
+document.addEventListener('click', (e) => {
+  if (e.target && e.target.id === 'stopBtn') {
+    if (typeof stopSession === 'function') {
+      stopSession();
+    }
+  }
+  if (e.target && (e.target.id === 'startPauseBtn' || e.target.closest('#startPauseBtn'))) {
+    if (typeof handleStartPause === 'function') {
+      handleStartPause();
+    }
+  }
+});
+
+if (typeof document !== 'undefined') {
+  const sb = document.getElementById('stopBtn');
+  if (sb && !sb._bound) {
+    sb.addEventListener('click', stopSession);
+    sb._bound = true;
+  }
+}
+
+window.stopSession = stopSession;
+window.handleStartPause = handleStartPause;

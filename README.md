@@ -18,33 +18,30 @@ A web-based random round timer designed specifically for Brazilian Jiu Jitsu tra
 
 ## Usage
 
-1. Open `index.html` in a modern web browser
-2. Configure your session:
+1. Open `src/index.html` in a modern web browser, or serve the `src/` directory
+2. Configure your session via the Options modal:
    - Set round time range (min/max in seconds)
    - Set break time range (min/max in seconds)
    - Choose end condition (number of rounds or total session time)
    - Set pre-start countdown duration (seconds)
-3. Click "Start Session"
-4. Follow the timer - listen for audio cues
-5. Click "Stop / Cancel Session" to end early if needed
+3. Click "Start"
+4. Follow the timer - listen for audio cues (gong on round/break transitions, beeps in last 5 seconds)
+5. Click "Stop" to end early if needed
 
 ## Running Locally
 
-### Using Python
+### Using Python (serve src/)
 ```bash
-python3 -m http.server 8000
+cd src && python3 -m http.server 8000
 ```
 Then open [http://localhost:8000](http://localhost:8000)
 
 ### Using Node.js
 ```bash
-npx serve .
+npx serve src
 ```
 
-### Using PHP
-```bash
-php -S localhost:8000
-```
+
 
 ## Browser Compatibility
 
@@ -59,10 +56,25 @@ Tested on Chrome, Firefox, Safari, and Edge.
 
 ```
 random_round_timer/
-├── index.html      # Main HTML structure
-├── style.css       # Styling and responsive design
-├── app.js          # Timer logic and audio generation
-└── README.md       # This file
+├── src/             # Source files
+│   ├── index.html   # Main HTML structure
+│   ├── style.css    # Styling and responsive design
+│   └── app.js       # Timer logic and audio generation
+├── tests/           # Unit tests (Vitest)
+├── package.json     # Dependencies and test scripts
+└── README.md        # This file
+```
+
+## Testing
+
+Run tests with:
+```bash
+npm test
+```
+
+Run tests in watch mode:
+```bash
+npm run test:watch
 ```
 
 ## Tips for BJJ Training
