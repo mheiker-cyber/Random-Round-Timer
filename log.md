@@ -37,3 +37,27 @@ Plan for button behavior tests:
 - Added missing endSession and stopSession functions
 - Made stopSession more defensive with null checks and global exposure
 - Added defensive checks throughout button handlers
+
+## 2026-10-29 — full review and refactor
+
+Bugs found in the live code path:
+- `#startPauseBtn` had two listeners (direct + `document` click delegation), so one click ran `handleStartPause` twice: start then immediately pause. Stop had three bindings.
+- `currentRound` was incremented in both `nextRound()` and `startRound()`, skipping rounds after every break.
+- `#roundsInput`/`#timeInput` had been pointed at the number inputs instead of their containers, so the end-condition toggle hid nothing.
+- `resumeTimer()` restarted the phase at full duration, losing paused progress.
+- Pausing during the pre-start countdown left the session with no running interval after resume.
+- Countdown setting was unused; `resumeCountdown` was dead code.
+- Two gongs fired at every round/break transition (once at phase end, once at next phase start).
+
+Refactor:
+- Rewrote `src/app.js` around one phase ticker (`startPhaseTimer`/`runPhaseInterval`), one countdown ticker, and a single `resumePhaseTimer`; audio reduced to `playTone` + `playGong`/`playBeep`.
+- Explicit phases: `idle | countdown | round | break | done`; Start works after `done`; Stop is an idempotent reset.
+- One listener per control; removed document delegation and `window` exports.
+- Input validation via `toInt` (empty/invalid countdown falls back to 5, `0` skips countdown); session config snapshotted at Start.
+- Session elapsed excludes paused time (start time re-based on resume).
+- Rounds mode ends after the final round with no trailing break; time mode ends mid-phase or when a break would overrun.
+- README countdown wording corrected to "before the session begins"; AGENTS.md gotchas updated.
+
+Tests:
+- Added `tests/integration-buttons.test.js`: injects the real `index.html` body into jsdom, executes the real `src/app.js`, mocks audio/alert/dialog, and drives Start/Pause/Resume/Stop/Settings/end-condition radios with fake timers (17 tests, including regression coverage for the double-click-handler and skipped-round bugs).
+- `npm test`: 6 files, 66 tests passing.

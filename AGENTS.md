@@ -16,11 +16,13 @@ There is no lint, typecheck, formatter, codegen, or CI. Verification = `npm test
 ## Architecture / gotchas
 
 - `src/app.js` is a **classic browser script**, not an ES module: no exports/imports, and it queries every DOM element at load time. Loading it without the full `index.html` DOM throws.
-- Because of that, tests **cannot import app logic**. `tests/utils.test.js`, `timer-logic.test.js`, and `button-behavior.test.js` re-implement the logic locally; `tests/app.test.js` only greps `src/app.js` text; `tests/html.test.js` asserts HTML strings. Tests can pass while real behavior is broken — update the duplicated logic *and* verify in the browser. Consider refactoring logic into importable modules before relying on test coverage.
-- Round/break ticking is duplicated: inline `setInterval` bodies in `startRound`/`startBreak` and again in `resumeTimer`. Changes to beeps, countdown class, or phase transitions must be mirrored in all three places.
-- The "Pre-start Countdown" setting is stored in `state.countdownSeconds` but never used; `startSession()` starts round 1 immediately and `resumeCountdown()` is dead code. README claims a pre-start countdown — don't assume it works.
-- Audio uses Web Audio API and must be created from a user gesture (`initAudio()` runs on the start-pause click). Any test touching sounds needs a mocked `window.AudioContext`/`webkitAudioContext` (see `tests/app.test.js`).
-- Timing mixes wall-clock session elapsed (`Date.now()` + `sessionIntervalId`) with per-phase tick countdowns (`intervalId`). Pause clears both; beware drift assumptions when changing pause/resume.
+- `tests/integration-buttons.test.js` is the real behavioral test: it injects `index.html`'s body into jsdom, evaluates the actual `src/app.js` (via `new Function`), mocks `AudioContext`/`alert`/dialog methods, and drives the buttons with fake timers. Extend this file for behavior changes. `tests/utils.test.js`, `timer-logic.test.js`, and `button-behavior.test.js` only re-implement logic locally; `tests/app.test.js` greps source and `tests/html.test.js` asserts HTML strings.
+- Phase ticking is consolidated: `startPhaseTimer`/`runPhaseInterval` handle rounds and breaks, `runCountdownInterval` handles the pre-start countdown, and `resumePhaseTimer` resumes from `state.timeRemaining`. Change beep/countdown-class/transition logic in those helpers, not per phase.
+- The pre-start countdown is implemented: `startSession()` reads `#countdown` (empty/invalid falls back to 5, `0` skips it), runs a `countdown` phase, then starts round 1. It can be paused/resumed like any phase.
+- Every control is bound **exactly once** (no `document`-level delegation, no duplicate fallback bindings). A second listener on `#startPauseBtn` makes one click start *and* immediately pause — the integration test guards against this.
+- Audio uses Web Audio API and must be created from a user gesture (`initAudio()` runs on the start-pause click). Any test touching sounds needs a mocked `window.AudioContext`/`webkitAudioContext` and a `typeof optionsModal.showModal === 'function'` stand-in for jsdom `<dialog>`.
+- Timing mixes wall-clock session elapsed (`Date.now()` + `sessionIntervalId`) with per-phase tick countdowns (`intervalId`). Pause clears both; resume re-bases `sessionStartTime` from `sessionElapsedSeconds`. Session elapsed excludes paused time.
+- End conditions: rounds mode ends after the final round with **no trailing break** (`nextBreak` uses `currentRound >= totalRounds`); time mode ends from `updateSessionElapsed` and from break projection checks.
 - `.gitignore` excludes `node_modules/` and `package-lock.json` intentionally; don't commit the lockfile.
 
 ## Workflow conventions

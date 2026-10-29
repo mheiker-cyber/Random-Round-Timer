@@ -6,7 +6,7 @@ A web-based random round timer designed specifically for Brazilian Jiu Jitsu tra
 
 - **Random Timings**: Set min/max for both rounds and breaks - each will be randomly selected
 - **Flexible End Conditions**: End by number of rounds or by total session time
-- **Configurable Countdown**: Adjustable pre-start countdown (default 5s) before rounds and breaks
+- **Configurable Countdown**: Adjustable pre-start countdown (default 5s) before the session begins
 - **Audio Signals**: 
   - Gong sound for round start and round end
   - Gong sound for break start and break end
