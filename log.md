@@ -82,3 +82,4 @@ Tests:
 - `deploy` uses `needs: test`, so a failing/skipped test job blocks deployment; a passing suite triggers the Pages deploy.
 - Moved Pages/id-token write permissions to the deploy job only (workflow-level stays `contents: read`).
 - Verified the CI steps locally in a clean directory (copy of `package.json`, `vitest.config.js`, `src/`, `tests/`): fresh `npm install` + `npm test` → 72 passing.
+- Added a "Test and Deploy" workflow status badge (main branch) to the README, linking to the Actions run.

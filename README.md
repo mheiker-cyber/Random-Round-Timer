@@ -1,5 +1,7 @@
 # Random Round Timer for BJJ
 
+[![Test and Deploy](https://github.com/mheiker-cyber/Random-Round-Timer/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/mheiker-cyber/Random-Round-Timer/actions/workflows/deploy.yml)
+
 A web-based random round timer designed specifically for Brazilian Jiu Jitsu training. Randomize round and break durations within your specified ranges to keep training unpredictable and engaging.
 
 **Live demo:** https://mheiker-cyber.github.io/Random-Round-Timer/
