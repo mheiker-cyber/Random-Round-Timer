@@ -75,3 +75,10 @@ Tests:
 
 - Replaced the round/break start gong with a one-second 800 Hz beep (`playLongBeep`). The gong (150 Hz) now plays only when the session completes; countdown/last-5s beeps are unchanged.
 - Updated README audio descriptions and integration-test frequency/duration assertions.
+
+## 2026-10-29 — tests gate deployment
+
+- Split `.github/workflows/deploy.yml` into `test` and `deploy` jobs. `test` checks out, sets up Node 20, runs `npm install` (no committed lockfile) and `npm test`.
+- `deploy` uses `needs: test`, so a failing/skipped test job blocks deployment; a passing suite triggers the Pages deploy.
+- Moved Pages/id-token write permissions to the deploy job only (workflow-level stays `contents: read`).
+- Verified the CI steps locally in a clean directory (copy of `package.json`, `vitest.config.js`, `src/`, `tests/`): fresh `npm install` + `npm test` → 72 passing.
