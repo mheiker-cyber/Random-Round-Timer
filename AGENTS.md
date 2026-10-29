@@ -10,8 +10,16 @@ Static BJJ round timer: vanilla HTML/CSS/JS in `src/`, no build step, no runtime
 - `npx vitest run tests/timer-logic.test.js` — run one test file
 - `npx vitest run -t "should pause"` — run tests matching a name
 - `cd src && python3 -m http.server 8000` — serve the app (or open `src/index.html` directly)
+- `git push origin main` — deploys `src/` to GitHub Pages via Actions
 
-There is no lint, typecheck, formatter, codegen, or CI. Verification = `npm test` plus a manual browser check for UI/audio changes.
+There is no lint, typecheck, formatter, or codegen. Verification = `npm test` plus a manual browser check for UI/audio changes.
+
+## Deployment
+
+- `.github/workflows/deploy.yml` publishes **only `src/`** to GitHub Pages on every push to `main` (and via manual dispatch).
+- One-time setup: repo **Settings → Pages → Build and deployment → Source: GitHub Actions**. The workflow's `configure-pages` step uses `enablement: true` to attempt this automatically.
+- URL: https://mheiker-cyber.github.io/Random-Round-Timer/ — all asset paths are relative, so the project subpath works with no base-path config.
+- No build step: the artifact is the checked-in `src/` directory (`index.html`, `style.css`, `app.js`).
 
 ## Architecture / gotchas
 

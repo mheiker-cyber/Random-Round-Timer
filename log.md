@@ -61,3 +61,11 @@ Refactor:
 Tests:
 - Added `tests/integration-buttons.test.js`: injects the real `index.html` body into jsdom, executes the real `src/app.js`, mocks audio/alert/dialog, and drives Start/Pause/Resume/Stop/Settings/end-condition radios with fake timers (17 tests, including regression coverage for the double-click-handler and skipped-round bugs).
 - `npm test`: 6 files, 66 tests passing.
+
+## 2026-10-29 — GitHub Pages deployment
+
+- Added `.github/workflows/deploy.yml`: on push to `main` (or manual dispatch), checks out the repo, configures Pages, uploads `src/` as the Pages artifact, and deploys it.
+- Only `src/` is published; tests, docs, and config stay out of the site.
+- `configure-pages` uses `enablement: true`; if the token cannot enable Pages, set Settings → Pages → Source to "GitHub Actions" once.
+- Site URL: https://mheiker-cyber.github.io/Random-Round-Timer/ (relative asset paths work under the repo subpath).
+- No credentials were available in the agent environment, so the workflow commit still needs `git push origin main` from the user.
