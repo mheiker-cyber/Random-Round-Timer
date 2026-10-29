@@ -579,7 +579,7 @@ describe('integration: real app.js driven through index.html', () => {
   });
 
   describe('audio cues', () => {
-    it('plays a gong on round start and beeps in the last five seconds', () => {
+    it('plays a long beep on round start and beeps in the last five seconds', () => {
       setInputs({
         countdown: 0,
         roundMin: 7,
@@ -592,7 +592,11 @@ describe('integration: real app.js driven through index.html', () => {
       expect(window.AudioContext).not.toHaveBeenCalled();
       click('startPauseBtn');
       const ctx = window.AudioContext.mock.results[0].value;
-      expect(ctx.createOscillator).toHaveBeenCalledTimes(1); // round-start gong
+      expect(ctx.createOscillator).toHaveBeenCalledTimes(1);
+
+      const startTone = ctx.createOscillator.mock.results[0].value;
+      expect(startTone.frequency.setValueAtTime).toHaveBeenCalledWith(800, 0);
+      expect(startTone.stop).toHaveBeenCalledWith(1); // one second long
 
       vi.advanceTimersByTime(1000); // 6 seconds left
       expect(ctx.createOscillator).toHaveBeenCalledTimes(1);
@@ -602,10 +606,12 @@ describe('integration: real app.js driven through index.html', () => {
 
       vi.advanceTimersByTime(1000); // round ends -> session completion gong
       expect(ctx.createOscillator).toHaveBeenCalledTimes(7);
+      const endTone = ctx.createOscillator.mock.results[6].value;
+      expect(endTone.frequency.setValueAtTime).toHaveBeenCalledWith(150, 0);
       expect(text('phaseLabel')).toBe('DONE');
     });
 
-    it('beeps during the countdown and gongs when round 1 starts', () => {
+    it('beeps during the countdown and plays a long beep when round 1 starts', () => {
       setInputs({
         countdown: 2,
         roundMin: 10,
@@ -618,20 +624,20 @@ describe('integration: real app.js driven through index.html', () => {
       click('startPauseBtn');
       const ctx = window.AudioContext.mock.results[0].value;
 
-      // Immediate countdown beep (800 Hz).
+      // Immediate countdown beep (800 Hz, 0.2s).
       expect(ctx.createOscillator).toHaveBeenCalledTimes(1);
-      expect(
-        ctx.createOscillator.mock.results[0].value.frequency.setValueAtTime
-      ).toHaveBeenCalledWith(800, 0);
+      const countdownBeep = ctx.createOscillator.mock.results[0].value;
+      expect(countdownBeep.frequency.setValueAtTime).toHaveBeenCalledWith(800, 0);
+      expect(countdownBeep.stop).toHaveBeenCalledWith(0.2);
 
       vi.advanceTimersByTime(1000); // 1 second left -> beep
       expect(ctx.createOscillator).toHaveBeenCalledTimes(2);
 
-      vi.advanceTimersByTime(1000); // countdown over -> round-start gong (150 Hz)
+      vi.advanceTimersByTime(1000); // countdown over -> long start beep (800 Hz, 1s)
       expect(ctx.createOscillator).toHaveBeenCalledTimes(3);
-      expect(
-        ctx.createOscillator.mock.results[2].value.frequency.setValueAtTime
-      ).toHaveBeenCalledWith(150, 0);
+      const startTone = ctx.createOscillator.mock.results[2].value;
+      expect(startTone.frequency.setValueAtTime).toHaveBeenCalledWith(800, 0);
+      expect(startTone.stop).toHaveBeenCalledWith(1);
       expect(text('phaseLabel')).toBe('ROUND 1');
     });
   });

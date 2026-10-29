@@ -70,3 +70,8 @@ Tests:
 - Site URL: https://mheiker-cyber.github.io/Random-Round-Timer/ (relative asset paths work under the repo subpath).
 - No credentials were available in the agent environment, so the workflow commit still needs `git push origin main` from the user.
 - Added the live demo URL to the README.
+
+## 2026-10-29 — start sound
+
+- Replaced the round/break start gong with a one-second 800 Hz beep (`playLongBeep`). The gong (150 Hz) now plays only when the session completes; countdown/last-5s beeps are unchanged.
+- Updated README audio descriptions and integration-test frequency/duration assertions.

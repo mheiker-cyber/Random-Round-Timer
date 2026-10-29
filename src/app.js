@@ -51,12 +51,17 @@ function playTone(startFrequency, endFrequency, peakGain, duration) {
   oscillator.stop(ctx.currentTime + duration);
 }
 
-// Low, long tone: round/break start and session completion.
+// Low, long tone: session completion.
 function playGong() {
   playTone(150, 80, 0.8, 1.2);
 }
 
-// High, short tone: pre-start countdown and the last 5 seconds of a phase.
+// Sustained high tone: round and break start.
+function playLongBeep() {
+  playTone(800, 800, 0.5, 1);
+}
+
+// Short high tone: pre-start countdown and the last 5 seconds of a phase.
 function playBeep() {
   playTone(800, 800, 0.3, 0.2);
 }
@@ -428,7 +433,7 @@ function startRound() {
   setStatus('In Progress', 'status-running');
   setCountdownActive(false);
 
-  playGong();
+  playLongBeep();
   startPhaseTimer(state.roundDuration, nextBreak);
 }
 
@@ -486,7 +491,7 @@ function startBreak() {
   setStatus('Rest', 'status-rest');
   setCountdownActive(false);
 
-  playGong();
+  playLongBeep();
   startPhaseTimer(state.breakDuration, nextRound);
 }
 
