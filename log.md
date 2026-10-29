@@ -69,3 +69,4 @@ Tests:
 - `configure-pages` uses `enablement: true`; if the token cannot enable Pages, set Settings → Pages → Source to "GitHub Actions" once.
 - Site URL: https://mheiker-cyber.github.io/Random-Round-Timer/ (relative asset paths work under the repo subpath).
 - No credentials were available in the agent environment, so the workflow commit still needs `git push origin main` from the user.
+- Added the live demo URL to the README.

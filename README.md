@@ -2,6 +2,8 @@
 
 A web-based random round timer designed specifically for Brazilian Jiu Jitsu training. Randomize round and break durations within your specified ranges to keep training unpredictable and engaging.
 
+**Live demo:** https://mheiker-cyber.github.io/Random-Round-Timer/
+
 ## Features
 
 - **Random Timings**: Set min/max for both rounds and breaks - each will be randomly selected
